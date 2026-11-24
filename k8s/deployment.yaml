@@ -1,4 +1,3 @@
-# Manifeste non sécurisé 
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -14,19 +13,45 @@ spec:
       labels:
         app: weather-api
     spec:
+      securityContext:          # Add this block
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: weather-api
-          image: ghcr.io/VOTRE_USER/weather-api:latest   # tag mutable
+          # Bonne pratique : utiliser un tag immuable ou un digest
+          image: ghcr.io/VOTRE_USER/weather-api:1.0.0 
           ports:
             - containerPort: 5000
+          
+          # Le securityContext doit englober toutes les options de sécurité
           securityContext:
-            privileged: true                # mode privilégié
-            runAsUser: 0                    # root
-            allowPrivilegeEscalation: true
+            privileged: false
+            runAsNonRoot: true
+            runAsUser: 10001
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          
+          # Bonne pratique : limiter les ressources pour éviter le DoS
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+
+          # La variable d'environnement pointe vers un Secret Kubernetes
           env:
             - name: WEATHER_API_KEY
-              value: "sk_live_51Nf8Xk2eZvKYlo9aQ7mTz3PdR4uW6bHc"   # secret en clair
-          # pas de resources.limits, pas de NetworkPolicy
+              valueFrom:
+                secretKeyRef:
+                  name: weather-api-secrets
+                  key: WEATHER_API_KEY
 ---
 apiVersion: v1
 kind: Service
@@ -39,3 +64,19 @@ spec:
   ports:
     - port: 80
       targetPort: 5000
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-weather-api-ingress
+  namespace: app
+spec:
+  podSelector:
+    matchLabels:
+      app: weather-api
+  policyTypes:
+    - Ingress
+  ingress:
+    - ports:
+        - protocol: TCP
+          port: 5000
