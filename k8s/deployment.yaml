@@ -13,7 +13,7 @@ spec:
       labels:
         app: weather-api
     spec:
-      securityContext:          # Add this block
+      securityContext:          
         runAsNonRoot: true
         runAsUser: 10001
         runAsGroup: 10001
@@ -22,13 +22,13 @@ spec:
       containers:
         - name: weather-api
           # Bonne pratique : utiliser un tag immuable ou un digest
-          image: ghcr.io/VOTRE_USER/weather-api:1.0.0 
+          image: emnagharbi/weather-api:1.0.0 
           ports:
             - containerPort: 5000
           
           # Le securityContext doit englober toutes les options de sécurité
           securityContext:
-            privileged: true
+            privileged: false
             runAsNonRoot: true
             runAsUser: 10001
             allowPrivilegeEscalation: false
