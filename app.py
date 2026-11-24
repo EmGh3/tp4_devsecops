@@ -1,12 +1,30 @@
-from flask import Flask, jsonify, request
+import os
+import sys
+from flask import Flask, json, jsonify, request
 import requests
+import sys
+import subprocess
 
 app = Flask(__name__)
 
-# VULNÉRABILITÉ VOLONTAIRE : secret codé en dur (fausses valeurs)
-WEATHER_API_KEY = "sk_live_51Nf8Xk2eZvKYlo9aQ7mTz3PdR4uW6bHc"
-AWS_ACCESS_KEY_ID = "AKIAJ3KQ7VZ5TPLM2XNB"
-AWS_SECRET_ACCESS_KEY = "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"
+env = os.environ.copy()
+env.setdefault(
+    "SOPS_AGE_KEY_FILE",
+    r"./age.key",
+)
+
+
+# Déchiffre secrets.enc.yaml au démarrage et charge les variables
+proc = subprocess.run(
+["sops", "--decrypt", "--input-type", "yaml", "--output-type", "json", "secrets.enc.yaml"],
+    capture_output=True, text=True,env=env,
+)
+
+secrets = json.loads(proc.stdout)
+
+WEATHER_API_KEY = secrets["WEATHER_API_KEY"]
+AWS_ACCESS_KEY_ID = secrets["AWS_ACCESS_KEY_ID"]
+AWS_SECRET_ACCESS_KEY = secrets["AWS_SECRET_ACCESS_KEY"]
 
 
 @app.route("/health")
