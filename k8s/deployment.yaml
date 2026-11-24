@@ -1,0 +1,41 @@
+# Manifeste non sécurisé 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: weather-api
+  namespace: app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: weather-api
+  template:
+    metadata:
+      labels:
+        app: weather-api
+    spec:
+      containers:
+        - name: weather-api
+          image: ghcr.io/VOTRE_USER/weather-api:latest   # tag mutable
+          ports:
+            - containerPort: 5000
+          securityContext:
+            privileged: true                # mode privilégié
+            runAsUser: 0                    # root
+            allowPrivilegeEscalation: true
+          env:
+            - name: WEATHER_API_KEY
+              value: "sk_live_51Nf8Xk2eZvKYlo9aQ7mTz3PdR4uW6bHc"   # secret en clair
+          # pas de resources.limits, pas de NetworkPolicy
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: weather-api
+  namespace: app
+spec:
+  selector:
+    app: weather-api
+  ports:
+    - port: 80
+      targetPort: 5000
