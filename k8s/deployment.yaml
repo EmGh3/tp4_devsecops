@@ -28,7 +28,7 @@ spec:
           
           # Le securityContext doit englober toutes les options de sécurité
           securityContext:
-            privileged: false
+            privileged: true
             runAsNonRoot: true
             runAsUser: 10001
             allowPrivilegeEscalation: false
