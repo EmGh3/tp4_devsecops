@@ -1,0 +1,29 @@
+﻿apiVersion: policies.kyverno.io/v1beta1
+kind: NamespacedImageValidatingPolicy
+metadata:
+  name: verify-image-signature
+  namespace: app          # Créer directement dans le namespace app
+spec:
+  validationActions: [Deny]
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["pods"]
+  matchImageReferences:
+    - glob: "emnagharbi/weather-api*"
+  attestors:
+    - name: cosign
+      cosign:
+        key:
+          data: |
+            -----BEGIN PUBLIC KEY-----
+            MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEIUll+zt3bUFC6SwI1GvbLc0fGuLK
+            ODZRBuQvK0IQn5E7OhGe1LAQePlV1dGA1y24ivMlPDXtEURR56y+tTbOoQ==
+            -----END PUBLIC KEY-----
+  validations:
+    - expression: >-
+        images.containers.map(image,
+          verifyImageSignatures(image, [attestors.cosign])).all(e, e > 0)
+      message: "Image non signée ou signature invalide"
